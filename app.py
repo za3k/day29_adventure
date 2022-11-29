@@ -10,7 +10,7 @@ from base import app,load_info,ajax,DBDict,DBList,random_id,hash_id,full_url_for
 # -- Info for every Hack-A-Day project --
 load_info({
     "project_name": "Hack-An-Adventure",
-    "source_url": "https://github.com/za3k/day28_adventure",
+    "source_url": "https://github.com/za3k/day29_adventure",
     "subdir": "/hackaday/adventure",
     "description": "A relaxing coloring book adventure. It is nice.",
     "instructions": "",

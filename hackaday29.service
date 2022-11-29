@@ -1,11 +1,11 @@
 [Unit]
-Description=gunicorn3 for hackaday-28-adventure
+Description=gunicorn3 for hackaday-29-adventure
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/hackaday/day28_adventure
-ExecStart=/bin/gunicorn3 -e SCRIPT_NAME=/hackaday/adventure --bind 0.0.0.0:8028 app:app
+WorkingDirectory=/hackaday/day29_adventure
+ExecStart=/bin/gunicorn3 -e SCRIPT_NAME=/hackaday/adventure --bind 0.0.0.0:8029 app:app
 
 [Install]
 WantedBy=multi-user.target
