@@ -3,11 +3,11 @@
 function debug(e) { $(".error").text(e || ""); }
 
 const fast = false; // Skip waits for development?
+const randomAdventure = true; // Non-random for develpment
 
 const random = {
     int: function(min, max) { return Math.floor(Math.random()*(max-min+1))+min; },
-    //choice: function(...things) { return things[random.int(0, things.length-1)]; }
-    choice: function(...things) { return things[0]; }
+    choice: function(...things) { return things[random.int(0, things.length-1)]; }
 };
 function uppercase(x) { return x[0].toUpperCase() + x.slice(1) }
 function sleep(seconds) {
@@ -95,10 +95,19 @@ class Easel {
 
 class Game {
     //getDescriptionFor(thing) {}
-    constructor(div, easel) {
+    constructor(div, easel, shared) {
         this.div = div;
         this.easel = easel;
+        this.link = div.find(".link")
         this.seen = {}
+        this.ci = 0;
+        this.id = new URLSearchParams(window.location.search).get("shared"); // Load async
+        this.shared = {};
+        if (this.id) {
+            this.ready = this.ajax("/ajax/get", {key:this.id}).then(j => this.shared = j.value)
+        } else this.ready = null;
+
+        const game = this;
         this.drawings = new Proxy({}, {
             deleteProperty(target, thing) {
                 if(!!localStorage.getItem(this.slot(thing))) {
@@ -108,9 +117,10 @@ class Game {
             },
             get(target, thing) {
                 //if (thing in target) return target[thing]; // For stuff like this.drawings.length
-                return localStorage.getItem(this.slot(thing));
+                return game.shared[thing] || localStorage.getItem(this.slot(thing));
             },
             set(target, thing, drawing) {
+                game.shared[thing] = drawing;
                 localStorage.setItem(this.slot(thing), drawing);
                 return true;
             },
@@ -118,6 +128,24 @@ class Game {
                 return `art-game debug-mode ${thing}`;
             }
         });
+    }
+    async ajax(url, data) {
+        return new Promise(success => {
+            $.ajax({
+                url: `${window.ajaxPrefix}${url}`,
+                method: "POST",
+                data: JSON.stringify(data),
+                dataType: 'json',
+                contentType: 'application/json',
+                success: success,
+            });
+        })
+    }
+    
+    choice(...args) {
+        this.ci++;
+        if (!!this.shared[this.ci]) return this.shared[this.ci];
+        return this.shared[this.ci] = randomAdventure ? random.choice(...args) : args[0];
     }
     makeImage(data) {
         return new Promise(resolve => {
@@ -144,8 +172,11 @@ class Game {
     async picture(thing) {
         const nowait = !!this.seen[thing];
         this.seen[thing] = 1;
-        if (!this.drawings[thing]) this.drawings[thing] = await this.easel.draw(thing);
-        const image = await this.makeImage(this.drawings[thing]);
+        let url;
+        if (this.drawings[thing]) url = this.shared[thing] = this.drawings[thing];
+        else if (this.shared[thing]) url = this.shared[thing];
+        else this.drawings[thing] = url = this.shared[thing] = await this.easel.draw(thing);
+        const image = await this.makeImage(url);
 
         // Make a picture card
         const picture = $(`<div class="picture"><div class="picture-label">${thing}</div></div>`);
@@ -157,16 +188,25 @@ class Game {
 
         await this.add(picture, !!nowait ? 0 : 2)
     }
+    async makeLink() {
+        const url = new URL(window.location.href);
+        if (!this.id) this.id = (await this.ajax("/ajax/store", {value:this.shared})).key
+        url.searchParams.set("shared", this.id);
+        return url;
+    }
     async run() {
-        const captive = random.choice("the prince", "the princess", "your cat", "a cool bug")
-         , companion = random.choice("your loyal steed", "your dog", "your unicorn", "your trusty companion", "your magic hat", "your secret crush", "your battle-clown")
-         , villain = random.choice("a dastardly villain", "an evil wizard", "a weird bug", "an evil witch")
-         , travel_method = random.choice("a long rope", "treacherous stairs", "a catapult", "a secret entrance", "a flying carpet")
-         , punishment = random.choice("had to make everyone pie", "went to jail", "was banished", "got boo-ed offstage", "stubbed their toe")
-         , guards = random.choice("a guard", "two guards", "three guards", "a video camera", "a sternly worded 'No Entry' sign")
-        const Captive = uppercase(captive), Companion = uppercase(companion);
+        await this.ready;
         const text = (t) => this.text(t);
         const picture = (p) => this.picture(p);
+        const choice = (...args) => this.choice(...args);
+
+        const captive = choice("the prince", "the princess", "your cat", "a cool bug")
+         , companion = choice("your loyal steed", "your dog", "your unicorn", "your trusty companion", "your magic hat", "your secret crush", "your battle-clown")
+         , villain = choice("a dastardly villain", "an evil wizard", "a weird bug", "an evil witch")
+         , travel_method = choice("a long rope", "treacherous stairs", "a catapult", "a secret entrance", "a flying carpet")
+         , punishment = choice("had to make everyone pie", "went to jail", "was banished", "got boo-ed offstage", "stubbed their toe")
+         , guards = choice("a guard", "two guards", "three guards", "a video camera", "a sternly worded 'No Entry' sign")
+        const Captive = uppercase(captive), Companion = uppercase(companion);
 
         await text("Once upon a time, there was a hero. It was you!")
         await text("You arrived at the lonely castle.")
@@ -191,6 +231,11 @@ class Game {
         await picture("your reward")
         await text(`Everyone lived happily ever after, except ${villain}, who ${punishment}.`)
         await text(`THE END`)
+
+        this.link.show();
+        const url = await this.makeLink();
+        window.location.searchParam = url.searchParam;
+        this.link.attr("href", url.toString());
     }
 }
 

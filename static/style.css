@@ -111,6 +111,10 @@ body {
     box-shadow: 0 0 0 9999px rgba(0,0,0,0.2);
 }
 
+.link {
+    display: none;
+}
+
 /* -- All Hack-A-Day projects -- */
 
 .container {

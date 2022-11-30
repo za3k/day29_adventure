@@ -19,7 +19,23 @@ load_info({
 })
 
 # -- Routes specific to this Hack-A-Day project --
+adventures = DBDict("adventure")
 
 @app.route("/")
 def index():
     return render_template('index.html')
+
+@ajax("/ajax/store")
+def store(j):
+    value = j["value"]
+    key = hash_id(json.dumps(value))
+    adventures[key] = value
+    return {"key":key, "value": value}
+
+@ajax("/ajax/get")
+def get(json):
+    key = json["key"]
+    value = adventures.get(key)
+    if value is None:
+        return "", 404
+    return {"key": key, "value":value}
