@@ -6,8 +6,8 @@ const fast = false; // Skip waits for development?
 
 const random = {
     int: function(min, max) { return Math.floor(Math.random()*(max-min+1))+min; },
-    choice: function(...things) { return things[random.int(0, things.length-1)]; }
-    //choice: function(...things) { return things[0]; }
+    //choice: function(...things) { return things[random.int(0, things.length-1)]; }
+    choice: function(...things) { return things[0]; }
 };
 function uppercase(x) { return x[0].toUpperCase() + x.slice(1) }
 function sleep(seconds) {
